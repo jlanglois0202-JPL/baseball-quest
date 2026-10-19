@@ -155,7 +155,8 @@ async function run(fn, ...args) {
 
 async function loadProfile() {
   state.profile = await api.getProfile();
-  state.players = state.profile.role === 'coach' ? [] : await api.listMyPlayers();
+  // Coaches can be parents too (their own kid on the team).
+  state.players = await api.listMyPlayers();
 }
 
 window.addEventListener('hashchange', route);
@@ -319,7 +320,7 @@ async function playerPage(pid) {
     <div class="card center"><div style="font-size:36px">📋</div><h3>No drills posted for this week yet</h3>
       <p class="muted small">${player.teams.length || player.coaches.length ? 'Your coach will post this week\'s plan soon.' : 'Join your team or coach with the code they gave you.'}</p></div>` : '';
 
-  page(`${topbar(`${state.players.length > 1 ? '<a class="iconbtn" href="#/">Players</a>' : ''}<button class="iconbtn" data-act="player-menu" data-pid="${pid}" aria-label="Settings">⚙︎</button>`)}
+  page(`${topbar(`${state.profile.role === 'coach' ? '<a class="iconbtn" href="#/coach">Coach</a>' : state.players.length > 1 ? '<a class="iconbtn" href="#/">Players</a>' : ''}<button class="iconbtn" data-act="player-menu" data-pid="${pid}" aria-label="Settings">⚙︎</button>`)}
     <section class="hero"><div class="eyebrow">Player profile</div>
       <h1>${esc(player.avatar)} ${esc(player.first_name)}</h1><div class="sub">${esc(longDate())}</div>
       <div class="stats">
@@ -451,6 +452,10 @@ async function coachPlayersPage() {
     ${!rows.length ? `<div class="card"><h3>No players yet</h3><p class="muted small">Create a team on the Teams tab and share its code with parents. Your 1-on-1 code is below.</p></div>` : ''}
     ${behind.length ? `<div class="section-title"><h2>Need a nudge</h2><span>No training in 3+ days</span></div><div class="board">${behind.map(row).join('')}</div>` : ''}
     ${onTrack.length ? `<div class="section-title"><h2>On track</h2><span>days this week</span></div><div class="board">${onTrack.map(row).join('')}</div>` : ''}
+    <section class="card"><b>Your own players</b><p class="small muted" style="margin:4px 0 8px">Log your own kid's training here, same as any parent.</p>
+      ${state.players.map(p => `<a class="kid" href="#/p/${p.id}"><div class="avatar">${esc(p.avatar)}</div><div class="grow"><h3>${esc(p.name)}</h3>
+        <div class="small muted">${p.teams.map(t => esc(t.name)).join(' · ') || 'Not on a team yet'}</div></div><span class="xp">TRAIN →</span></a>`).join('')}
+      <div class="actions" style="justify-content:flex-start"><a class="btn sm" href="#/add-player">+ Add your player</a></div></section>
     <section class="card"><b>Your 1-on-1 code</b><p class="small muted" style="margin:4px 0 8px">Give this to parents of players you train individually. They enter it when adding their player.</p>
       <div class="code">${esc(state.profile.coach_code || '—')}</div></section>`, coachNav('coach'));
 }
